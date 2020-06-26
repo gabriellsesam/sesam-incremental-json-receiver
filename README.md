@@ -52,7 +52,13 @@ There are the parameters that effect the way this microservice works. They are a
 | ms_do_sort | flag to get output sorted after \_updated field. Values: _true_/_false_. Applies to the page that is being retrieved only, hence upon pagination sorting is guaranteed only if the source delivers entities sorted | no | _false_ |
 | ms_offset_bigger_and_equal | set to _true_ to get the entities that are _greater than_ the offset value instead of _greater-than-or-equals_. The source systems behaviour should be taken into account here. Works for offset values of type integer only. Values: _true_/_false_ | no | _false_ |
 | ms_pagenum_param_at_src | if pagination is applicable,the name of the query parameter for the page number. Required to activate pagination along with the "page number parameter" so that succeeding pages would be returned as well | no | n/a |
+| ms_loop_request_pagesize_attribute | The attribute in the API response which contains how many entities each response contains. | no | n/a
+| ms_loop_request_total_attribute | The attribute in the API response which gives the total amount of entities available with the current URL. | no | n/a
+| ms_loop_request_offset_arg | The attribute in the API response which defines the offset the current response. | no | n/a
+| ms_loop_request_offset_attribute | The attribute in the API Request which tells the API at what offset to grab entities from. Internally the microservice will start at 0 and increase this number by the pagesize attribute value which is returned by each API call. | no | n/a
+| ms_split_attribute_into_children | The attribute in the response which contains the 'real' entities you want returned by the api call. | no | n/a
 
+###Important note: Either none 'ms_loop_request_*' are set or all have to be set. 
 
 #### 3. query parameters after the Source system
 There are the parameters that are passed over to the source system.
@@ -149,3 +155,19 @@ system and pipe
   * ENV(my-base-url)/\_\_path\_\__/\_\_since\_\_
   * ENV(my-base-url)/\_\_path\_\_?since=\_\_since\_\_
   * ENV(my-base-url)/\_\_path\_\_?since=\_\_since\_\_&pagesize=\_\_limit\_\_
+  * ENV(my-base-url)/\_\_path\_\_?since=\_\_since\_\_&ms_loop_request_total_attribute=totalCount&ms_loop_request_pagesize_attribute=pageSize&ms_loop_request_offset_attribute=offset&ms_loop_request_offset_arg=offset&ms_split_attribute_into_children=items&ms_updated_property=changed.atDate
+    * For this example the API response looks like this without the #comments. We map the definable URL parameters to their corresponding attributes in the response. 
+        ```
+        { "totalCount": 46, # Total amount returned by the API. Increase the offset until offset + pageSize reaches this amount.-> ms_loop_request_total_attribute
+          "pageSize": 1,    # Amount of entities in the 'items' attribute for this current response.                            -> ms_loop_request_pagesize_attribute
+          "offset": 0,      # The offset used in the request which produced this response.                                      -> ms_loop_request_offset_attribute
+          "items": [{       # The attribute which contains the 'real' entities which we return to sesam.                        -> ms_split_attribute_into_children
+              "id": foo,
+              "changed": {
+                "atDate": "2019-10-29T12:08:26.058+00:00" # The _updated property, Supports '.')                                -> ms_updated_property
+              }
+            }]
+        }
+        ```
+     * The `ms_loop_request_offset_arg` URL parameter will be used in the request URL like <request_url>?<value_of_ms_loop_request_offset_arg>=1337
+        * The offset of any request is determined by the response's offset attribute + pagesize. (These are 0 the first request) 
