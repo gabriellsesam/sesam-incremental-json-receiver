@@ -10,6 +10,7 @@ RUN pip install -r requirements.txt
 
 #Deletion of files not allowed by aquascanner.
 RUN rm -rf /usr/local/lib/python3.8/site-packages/werkzeug/debug/shared/jquery.js
+RUN rm -rf /usr/local/lib/python3.8/site-packages/cherrypy/test/test.pem
 RUN rm -rf /usr/local/lib/python3.8/ipaddress.py
 
 EXPOSE 5000/tcp
