@@ -1,0 +1,55 @@
+# setup
+trigger:
+- master
+
+pr:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: containerregistry
+    value: "ContainerRegistryProd"
+  - name: imagetag
+    value: $(Build.BuildNumber)
+
+jobs:
+- job:
+  displayName: Build and scan sesam-incremental-json-receiver docker image
+  steps:
+    - task: Docker@2
+      displayName: Build docker image
+      inputs:
+        containerRegistry: $(containerregistry)
+        repository: 'sesam-incremental-json-receiver'
+        command: build
+        Dockerfile: '**/Dockerfile'
+        tags: '$(imagetag)'
+    - task: Docker@2
+      displayName: 'Login for $(containerregistry)'
+      inputs:
+        containerRegistry: $(containerregistry)
+        command: login
+    - task: aquasecScanner@4
+      displayName: 'Scan docker image with Aquasec'
+      inputs:
+        image: 'containerregistryprod.azurecr.io/sesam-incremental-json-receiver:$(imagetag)'
+        scanner: 'containerregistryprod.azurecr.io/aquasec/scanner:latest'
+        connection: 'aqua-scanner'
+        policies: Default
+      continueOnError: false
+    - task: Docker@2
+      condition: ne(variables['Build.Reason'], 'PullRequest')
+      displayName: Push docker image
+      inputs:
+        containerRegistry: $(containerregistry)
+        repository: 'sesam-incremental-json-receiver'
+        command: push
+        tags: '$(imagetag)'
+    - task: PublishBuildArtifacts@1
+      condition: ne(variables['Build.Reason'], 'PullRequest')
+      displayName: 'Publish kubernetes configuration artifacts'
+      inputs:
+        PathtoPublish: CI
+        ArtifactName: CI
