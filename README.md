@@ -21,6 +21,8 @@ can be used to:
 | CONFIG | json with optional _headers_ and optional _oauth2_ fields which are also json. | yes | n/a |
 | AUTHENTICATION | OAUTH2 for oauth2 support. Any other value for no auth | no | n/a |
 | UPDATED_PROPERTY | (DEPRECATED) use corresponding query parameter instead. | no | n/a |
+| UPDATED_PROPERTY_FROM_FORMAT | Parses the date field in source entities with python datetime syntax. | no | n/a |
+| UPDATED_PROPERTY_TO_FORMAT | The format of date which the API accepts. | no | n/a |
 | OFFSET_BIGGER_AND_EQUAL | (DEPRECATED) use corresponding query parameter instead.| no | n/a |
 
 

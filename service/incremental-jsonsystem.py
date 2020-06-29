@@ -20,6 +20,8 @@ FULL_URL_PATTERN = None
 UPDATED_URL_PATTERN = None
 UPDATED_PROPERTY = None
 OFFSET_BIGGER_AND_EQUAL = None
+UPDATED_PROPERTY_FROM_FORMAT = None
+UPDATED_PROPERTY_TO_FORMAT = None
 
 
 def get_var(var):
@@ -228,10 +230,16 @@ def generate_response_data(url, microservice_args, args_to_forward):
 
 
 def parse_qs(request):
-    microservice_args = {'since': None, 'limit': None, 'ms_updated_property': UPDATED_PROPERTY,
-                         'ms_offset_bigger_and_equal': OFFSET_BIGGER_AND_EQUAL, 'ms_do_sort': False,
-                         'ms_data_property': None, 'ms_since_param_at_src': None,
-                         'ms_limit_param_at_src': None, 'ms_pagenum_param_at_src': None,
+    microservice_args = {'since': None, 'limit': None,
+                         'ms_updated_property': UPDATED_PROPERTY,
+                         'ms_updated_property_from_format': UPDATED_PROPERTY_FROM_FORMAT, #Not really used to pass along
+                         'ms_updated_property_to_format': UPDATED_PROPERTY_TO_FORMAT, #Not really used to pass along
+                         'ms_offset_bigger_and_equal': OFFSET_BIGGER_AND_EQUAL,
+                         'ms_do_sort': False,
+                         'ms_data_property': None,
+                         'ms_since_param_at_src': None,
+                         'ms_limit_param_at_src': None,
+                         'ms_pagenum_param_at_src': None,
                          'ms_use_currenttime_as_updated': False,
                          'do_loop_request': False,
                          'ms_loop_request_pagesize_attribute': None,
@@ -242,9 +250,23 @@ def parse_qs(request):
                          }
     limit = request.args.get('limit')
     since = request.args.get('since')
+    for arg in request.args:
+        logger.info(f'{arg}: {request.args.get(arg)}')
 
     if since:
         url = UPDATED_URL_PATTERN.replace('__path__', request.path[1:])
+        if UPDATED_PROPERTY_FROM_FORMAT:
+            datetime_since = None
+            try:
+                datetime_since = datetime.datetime.strptime(since, UPDATED_PROPERTY_FROM_FORMAT)
+            except ValueError as ve:
+                logger.info(f'Got date value error, if date-format ends with %z then ill try again and add back the +: {ve}')
+                if UPDATED_PROPERTY_FROM_FORMAT.endswith('%z'):
+                    datetime_since = datetime.datetime.strptime(since[0:-6] + '+' + since[-5:], UPDATED_PROPERTY_FROM_FORMAT)
+            if UPDATED_PROPERTY_TO_FORMAT:
+                since = datetime_since.strftime(UPDATED_PROPERTY_TO_FORMAT)
+            else:
+                since = str(datetime_since)
         url = url.replace('__since__', since)
     else:
         url = FULL_URL_PATTERN.replace('__path__', request.path[1:])
@@ -357,15 +379,21 @@ if __name__ == '__main__':
     UPDATED_URL_PATTERN = get_var('UPDATED_URL_PATTERN')
     UPDATED_PROPERTY = get_var('UPDATED_PROPERTY')
     OFFSET_BIGGER_AND_EQUAL = get_var('OFFSET_BIGGER_AND_EQUAL')
+    UPDATED_PROPERTY_FROM_FORMAT = get_var('UPDATED_PROPERTY_FROM_FORMAT')
+    UPDATED_PROPERTY_TO_FORMAT = get_var('UPDATED_PROPERTY_TO_FORMAT')
     auth_type = get_var('AUTHENTICATION')
     config = json.loads(get_var('CONFIG'))
-
+    if UPDATED_PROPERTY_TO_FORMAT and not UPDATED_PROPERTY_FROM_FORMAT:
+        logger.error('Cannot set UPDATED_PROPERTY_TO_FORMAT without setting UPDATED_PROPERTY_FROM_FORMAT. Exiting.')
+        exit(-1)
     print('STARTED UP WITH:')
-    print('\tFULL_URL_PATTERN={}'.format(FULL_URL_PATTERN))
-    print('\tUPDATED_URL_PATTERN={}'.format(UPDATED_URL_PATTERN))
-    print('\tUPDATED_PROPERTY={}'.format(UPDATED_PROPERTY))
-    print('\tOFFSET_BIGGER_AND_EQUAL={}'.format(OFFSET_BIGGER_AND_EQUAL))
-    print('\tauth_type={}'.format(auth_type))
+    print(f'\tFULL_URL_PATTERN={FULL_URL_PATTERN}')
+    print(f'\tUPDATED_URL_PATTERN={UPDATED_URL_PATTERN}')
+    print(f'\tUPDATED_PROPERTY={UPDATED_PROPERTY}')
+    print(f'\tUPDATED_PROPERTY_FROM_FORMAT={UPDATED_PROPERTY_FROM_FORMAT}')
+    print(f'\tUPDATED_PROPERTY_TO_FORMAT={UPDATED_PROPERTY_TO_FORMAT}')
+    print(f'\tOFFSET_BIGGER_AND_EQUAL={OFFSET_BIGGER_AND_EQUAL}')
+    print(f'\tauth_type={auth_type}')
     if not auth_type:
         SYSTEM = OpenUrlSystem(config)
     elif auth_type.upper() == 'OAUTH2':
