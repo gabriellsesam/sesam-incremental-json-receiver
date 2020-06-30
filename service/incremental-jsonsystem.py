@@ -22,7 +22,7 @@ UPDATED_PROPERTY = None
 OFFSET_BIGGER_AND_EQUAL = None
 UPDATED_PROPERTY_FROM_FORMAT = None
 UPDATED_PROPERTY_TO_FORMAT = None
-
+PARSE_ARGUMENTS_AS_LIST = None
 
 def get_var(var):
     envvar = None
@@ -250,8 +250,6 @@ def parse_qs(request):
                          }
     limit = request.args.get('limit')
     since = request.args.get('since')
-    for arg in request.args:
-        logger.info(f'{arg}: {request.args.get(arg)}')
 
     if since:
         url = UPDATED_URL_PATTERN.replace('__path__', request.path[1:])
@@ -270,7 +268,6 @@ def parse_qs(request):
         url = url.replace('__since__', since)
     else:
         url = FULL_URL_PATTERN.replace('__path__', request.path[1:])
-
     if limit:
         url = url.replace('__limit__', limit)
 
@@ -304,7 +301,10 @@ def parse_qs(request):
             args_to_forward.setdefault(key, value[0])
     for key, value in request_args.items():
         if key not in microservice_args:
-            args_to_forward[key] = value[0]
+            if key in PARSE_ARGUMENTS_AS_LIST:
+                args_to_forward[key] = value
+            else:
+                args_to_forward[key] = value[0]
 
     if microservice_args.get('ms_pagenum_param_at_src') and args_to_forward.get(
             microservice_args.get('ms_pagenum_param_at_src')):
@@ -383,6 +383,10 @@ if __name__ == '__main__':
     UPDATED_PROPERTY_TO_FORMAT = get_var('UPDATED_PROPERTY_TO_FORMAT')
     auth_type = get_var('AUTHENTICATION')
     config = json.loads(get_var('CONFIG'))
+
+    tmp_parse_args_as_list = get_var('PARSE_ARGUMENTS_AS_LIST')
+    if tmp_parse_args_as_list:
+        PARSE_ARGUMENTS_AS_LIST = json.loads(tmp_parse_args_as_list)
     if UPDATED_PROPERTY_TO_FORMAT and not UPDATED_PROPERTY_FROM_FORMAT:
         logger.error('Cannot set UPDATED_PROPERTY_TO_FORMAT without setting UPDATED_PROPERTY_FROM_FORMAT. Exiting.')
         exit(-1)
