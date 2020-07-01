@@ -6,6 +6,7 @@ LABEL maintainer="Gabriell Vig gabriell.vig@sesam.io"
 COPY ./service /service
 WORKDIR /service
 RUN pip install --upgrade pip
+RUN apk add --no-cache gcc musl-dev
 RUN pip install -r requirements.txt
 
 #Deletion of files not allowed by aquascanner.

@@ -12,6 +12,7 @@ import sys
 import urllib.parse
 import logger as log
 from dotty_dict import dotty
+import dateparser
 
 app = Flask(__name__)
 
@@ -23,6 +24,7 @@ OFFSET_BIGGER_AND_EQUAL = None
 UPDATED_PROPERTY_FROM_FORMAT = None
 UPDATED_PROPERTY_TO_FORMAT = None
 PARSE_ARGUMENTS_AS_LIST = None
+USE_GENERIC_UPDATED_PARSER = False
 
 def get_var(var):
     envvar = None
@@ -178,7 +180,10 @@ def generate_response_data(url, microservice_args, args_to_forward):
                                 data["_updated"] = microservice_args.get('call_issued_time')
                             elif microservice_args.get('ms_updated_property'):
                                 dotted_data = dotty(data)
-                                data["_updated"] = dotted_data[microservice_args.get('ms_updated_property')]
+                                timestamp = dotted_data[microservice_args.get('ms_updated_property')]
+                                if USE_GENERIC_UPDATED_PARSER:
+                                    timestamp = dateparser.parse(timestamp).strftime(UPDATED_PROPERTY_FROM_FORMAT)
+                                data["_updated"] = timestamp
                             entities_to_return.append(data)
                         except KeyError as ke:
                             logger.error(
@@ -253,7 +258,7 @@ def parse_qs(request):
 
     if since:
         url = UPDATED_URL_PATTERN.replace('__path__', request.path[1:])
-        if UPDATED_PROPERTY_FROM_FORMAT:
+        if UPDATED_PROPERTY_TO_FORMAT:
             datetime_since = None
             try:
                 datetime_since = datetime.datetime.strptime(since, UPDATED_PROPERTY_FROM_FORMAT)
@@ -383,6 +388,7 @@ if __name__ == '__main__':
     UPDATED_PROPERTY_TO_FORMAT = get_var('UPDATED_PROPERTY_TO_FORMAT')
     auth_type = get_var('AUTHENTICATION')
     config = json.loads(get_var('CONFIG'))
+    USE_GENERIC_UPDATED_PARSER = get_var('USE_GENERIC_UPDATED_PARSER')
 
     tmp_parse_args_as_list = get_var('PARSE_ARGUMENTS_AS_LIST')
     if tmp_parse_args_as_list:
