@@ -296,7 +296,7 @@ def parse_qs(request):
 
     # set call_issued_time to use as _updated value
     if microservice_args.get('ms_use_currenttime_as_updated'):
-        microservice_args.set('call_issued_time', datetime.datetime.now().isoformat())
+        microservice_args['call_issued_time'] = datetime.datetime.now().isoformat()
     del microservice_args['ms_use_currenttime_as_updated']
 
     # collect args_to_forward from url_args and request_args giving the latter higher precedence
