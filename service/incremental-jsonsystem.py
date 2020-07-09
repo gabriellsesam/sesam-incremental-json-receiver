@@ -158,10 +158,8 @@ def generate_response_data(url, microservice_args, args_to_forward):
                         rst_data = []
                 # apply sorting by updated_property
                 if microservice_args.get('ms_do_sort'):
-                    def get_updated_property(myjson):
-                        return myjson[microservice_args.get('ms_updated_property')]
-
-                    rst_data.sort(key=get_updated_property, reverse=False)
+                    rst_data.sort(key=lambda x: (dotty(x)[microservice_args.get('ms_updated_property')]),
+                                  reverse=False)
 
                 entity_count += len(rst_data)
                 # apply limit'ing
